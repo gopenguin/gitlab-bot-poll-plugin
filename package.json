@@ -16,5 +16,8 @@
     "poll"
   ],
   "author": "Anita Hensel, Stefan Kollmann",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "gitlab-bot": "^1.0.0"
+  }
 }
