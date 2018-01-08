@@ -79,7 +79,7 @@ function getVote(options, note) {
         return optionMatch[1] !== undefined ? optionMatch[1] : optionMatch[2] !== undefined ? optionMatch[2] : optionMatch[3];
     }
 
-    return null;
+    return undefined;
 }
 
 async function generatePollPost(client, issue, options, pollMatch) {
@@ -89,10 +89,13 @@ async function generatePollPost(client, issue, options, pollMatch) {
 
     notes.filter(note => !note.system).forEach(note => {
         if (userVotes[note.author.id] === undefined || userVotes[note.author.id].noteId < note.id) {
-            userVotes[note.author.id] = {
-                noteId: note.id,
-                vote: getVote(options, note.body)
-            };
+            const vote = getVote(options, note.body);
+            if (vote !== undefined){
+                userVotes[note.author.id] = {
+                    noteId: note.id,
+                    vote: vote
+                };
+            }
         }
     });
 
