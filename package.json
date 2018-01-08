@@ -18,6 +18,6 @@
   "author": "Anita Hensel, Stefan Kollmann",
   "license": "MIT",
   "dependencies": {
-    "gitlab-bot": "^1.0.0"
+    "gitlab-bot": "^1.1.0"
   }
 }
