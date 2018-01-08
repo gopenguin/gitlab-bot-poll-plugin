@@ -14,7 +14,7 @@ module.exports = (robot) => {
         }
         const options = getOptions(pollMatch[1]);
 
-        await generatePollPost(robot.client, projectId, issueId, options);
+        await generatePollPost(robot.client, issue, options);
 
         await setUpLabel(robot.client, projectId);
         await robot.client.projects.issues.edit(projectId, issueId, {"labels": issue.labels.concat([pollLabel]).join(",")});
@@ -27,7 +27,7 @@ module.exports = (robot) => {
 
         const issue = (await robot.client.projects.issues.show(projectId, issueId)).body;
 
-        if (!issue.labels.contains(pollLabel)) {
+        if (!issue.labels.some(l => l === pollLabel)) {
             return;
         }
 
@@ -38,7 +38,7 @@ module.exports = (robot) => {
         }
         const options = getOptions(pollMatch[1]);
 
-        await generatePollPost(robot.client, projectId, issueId, options);
+        await generatePollPost(robot.client, issue, options);
     });
 };
 
@@ -79,18 +79,17 @@ function getOptions(optionsString) {
 function getVote(options, note) {
     const voteRegex = /^\/vote[ \t]'([^']*?)'|"([^"]*?)"|([^'" \t,]+)$/mi;
 
-    if ((optionMatch = voteRegex.exec(optionsString)) !== null) {
+    if ((optionMatch = voteRegex.exec(note)) !== null) {
         return optionMatch[1] !== undefined ? optionMatch[1] : optionMatch[2] !== undefined ? optionMatch[2] : optionMatch[3];
     }
 
     return null;
 }
 
-async function generatePollPost(client, projectId, issueId, options) {
+async function generatePollPost(client, issue, options) {
     const userVotes = {};
 
-    const notes = await client.projects.issues.notes.all(projectId, issueId);
-    console.log(notes);
+    const notes = (await client.projects.issues.notes.all(issue.project_id, issue.iid)).body;
 
     notes.forEach(note => {
         if (userVotes[note.author.id] === undefined || userVotes[note.author.id].noteId < note.id) {
@@ -102,7 +101,8 @@ async function generatePollPost(client, projectId, issueId, options) {
     });
 
     const optionCount = {};
-    userVotes.forEach(userVote => {
+    Object.keys(userVotes).forEach(key => {
+        const userVote = userVotes[key];
         if (optionCount[userVote.vote] === undefined) {
             optionCount[userVote.vote] = 1;
         } else {
@@ -121,5 +121,5 @@ ${options.map(option => `
             
 [//]: # "END POLL"`;
 
-    await robot.client.projects.issues.edit(projectId, issueId, {description: editedPost});
+    await robot.client.projects.issues.edit(issue.project_id, issue.iid, {description: editedPost});
 }
