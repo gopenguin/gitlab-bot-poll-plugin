@@ -1,5 +1,7 @@
-const generatedContentMarker = "[//]: # \"BEGIN POLL\"";
 const pollLabel = "poll";
+
+const pollRegex = /\/poll[ \t]+((?:'[^']*?'|"[^"]*?"|[^'" \t,]+)(:?,[ \t]+(?:'[^']*?'|"[^"]*?"|[^'" \t,]+))*)/mi;
+const voteRegex = /^\/vote[ \t]('[^']*?'|"[^"]*?"|[^'" \t,]+)$/mi;
 
 module.exports = (robot) => {
     robot.on('issue.open', async (event) => {
@@ -14,7 +16,7 @@ module.exports = (robot) => {
         }
         const options = getOptions(pollMatch[1]);
 
-        await generatePollPost(robot.client, issue, options);
+        await generatePollPost(robot.client, issue, options, pollMatch);
 
         await setUpLabel(robot.client, projectId);
         await robot.client.projects.issues.edit(projectId, issueId, {"labels": issue.labels.concat([pollLabel]).join(",")});
@@ -38,13 +40,9 @@ module.exports = (robot) => {
         }
         const options = getOptions(pollMatch[1]);
 
-        await generatePollPost(robot.client, issue, options);
+        await generatePollPost(robot.client, issue, options, pollMatch);
     });
 };
-
-const pollRegex = /\/poll[ \t]+((?:'[^']*?'|"[^"]*?"|[^'"]*?)(:?,[ \t]+(?:'[^']*?'|"[^"]*?"|[^'" \t,]+))*)/mi;
-const voteRegex = /^\/vote[ \t]('[^']*?'|"[^"]*?"|[^'" \t,]+)$/mi;
-
 
 async function setUpLabel(client, projectId) {
     const projectLabels = await client.projects.labels.all(projectId);
@@ -57,7 +55,6 @@ async function setUpLabel(client, projectId) {
         });
     }
 }
-
 
 function getOptions(optionsString) {
     const optionRegex = /'([^']*?)'|"([^"]*?)"|([^'" \t,]+)/gmi;
@@ -86,10 +83,10 @@ function getVote(options, note) {
     return null;
 }
 
-async function generatePollPost(client, issue, options) {
+async function generatePollPost(client, issue, options, pollMatch) {
     const userVotes = {};
 
-    const notes = (await client.projects.issues.notes.all(issue.project_id, issue.iid)).body;
+    const notes = await client.projects.issues.notes.all(issue.project_id, issue.iid);
 
     notes.forEach(note => {
         if (userVotes[note.author.id] === undefined || userVotes[note.author.id].noteId < note.id) {
@@ -112,14 +109,12 @@ async function generatePollPost(client, issue, options) {
 
     const editedPost = `
 ${issue.description.substring(0, pollMatch.index).replace('[//]: # "', '')}
-${generatedContentMarker}
 
 [//]: # "${issue.description.substring(pollMatch.index, pollMatch.index + pollMatch[0].length)}"
 
 ${options.map(option => `
-* ${option}  (${optionCount === undefined ? 0 : optionCount[option]})`).join('').trim()}
-            
-[//]: # "END POLL"`;
+* ${option}  (${optionCount[option] === undefined ? 0 : optionCount[option]})`).join('').trim()}
+`;
 
-    await robot.client.projects.issues.edit(issue.project_id, issue.iid, {description: editedPost});
+    await client.projects.issues.edit(issue.project_id, issue.iid, {description: editedPost});
 }
