@@ -1,7 +1,6 @@
 const pollLabel = "poll";
 
 const pollRegex = /\/poll[ \t]+((?:'[^']*?'|"[^"]*?"|[^'" \t,]+)(:?,[ \t]+(?:'[^']*?'|"[^"]*?"|[^'" \t,]+))*)/mi;
-const voteRegex = /^\/vote[ \t]('[^']*?'|"[^"]*?"|[^'" \t,]+)$/mi;
 
 module.exports = (robot) => {
     robot.on('issue.open', async (event) => {
@@ -74,7 +73,7 @@ function getOptions(optionsString) {
 }
 
 function getVote(options, note) {
-    const voteRegex = /^\/vote[ \t]'([^']*?)'|"([^"]*?)"|([^'" \t,]+)$/mi;
+    const voteRegex = /^\/vote[ \t](?:'([^']*?)'|"([^"]*?)"|([^'" \t,]+))$/mi;
 
     if ((optionMatch = voteRegex.exec(note)) !== null) {
         return optionMatch[1] !== undefined ? optionMatch[1] : optionMatch[2] !== undefined ? optionMatch[2] : optionMatch[3];
