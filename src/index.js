@@ -88,7 +88,7 @@ async function generatePollPost(client, issue, options, pollMatch) {
 
     const notes = await client.projects.issues.notes.all(issue.project_id, issue.iid);
 
-    notes.forEach(note => {
+    notes.filter(note => !note.system).forEach(note => {
         if (userVotes[note.author.id] === undefined || userVotes[note.author.id].noteId < note.id) {
             userVotes[note.author.id] = {
                 noteId: note.id,
@@ -109,12 +109,10 @@ async function generatePollPost(client, issue, options, pollMatch) {
 
     const editedPost = `
 ${issue.description.substring(0, pollMatch.index).replace('[//]: # "', '')}
-
 [//]: # "${issue.description.substring(pollMatch.index, pollMatch.index + pollMatch[0].length)}"
-
 ${options.map(option => `
 * ${option}  (${optionCount[option] === undefined ? 0 : optionCount[option]})`).join('').trim()}
-`;
+`.trim();
 
     await client.projects.issues.edit(issue.project_id, issue.iid, {description: editedPost});
 }
