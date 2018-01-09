@@ -3,7 +3,7 @@ const pollLabel = "poll";
 const pollRegex = /\/poll[ \t]+((?:'[^']*?'|"[^"]*?"|[^'" \t,]+)(:?,[ \t]+(?:'[^']*?'|"[^"]*?"|[^'" \t,]+))*)/mi;
 
 module.exports = (robot) => {
-    robot.on('issue.open', async (event) => {
+    robot.on("issue.open", async (event) => {
         const projectId = event.payload.project.id;
         const issueId = event.payload.object_attributes.iid;
 
@@ -22,7 +22,7 @@ module.exports = (robot) => {
 
     });
 
-    robot.on('issue.note', async (event) => {
+    robot.on("issue.note", async (event) => {
         const projectId = event.payload.project.id;
         const issueId = event.payload.issue.iid;
 
@@ -72,13 +72,19 @@ function getOptions(optionsString) {
     return options;
 }
 
-function getVote(options, note) {
+function getVote(note, options) {
     const voteRegex = /^\/vote[ \t](?:'([^']*?)'|"([^"]*?)"|([^'" \t,]+))$/mi;
+    let optionMatch;
+    let numberVote;
 
     if ((optionMatch = voteRegex.exec(note)) !== null) {
-        return optionMatch[1] !== undefined ? optionMatch[1] : optionMatch[2] !== undefined ? optionMatch[2] : optionMatch[3];
+        const vote = optionMatch[1] !== undefined ? optionMatch[1] : optionMatch[2] !== undefined ? optionMatch[2] : optionMatch[3];
+        if (isNaN(numberVote = parseInt(vote)) || options[numberVote + 1] === undefined) {
+            return vote;
+        } else {
+            return options[numberVote + 1];
+        }
     }
-
     return undefined;
 }
 
@@ -89,8 +95,8 @@ async function generatePollPost(client, issue, options, pollMatch) {
 
     notes.filter(note => !note.system).forEach(note => {
         if (userVotes[note.author.id] === undefined || userVotes[note.author.id].noteId < note.id) {
-            const vote = getVote(options, note.body);
-            if (vote !== undefined){
+            const vote = getVote(note.body, options);
+            if (vote !== undefined) {
                 userVotes[note.author.id] = {
                     noteId: note.id,
                     vote: vote
@@ -110,10 +116,10 @@ async function generatePollPost(client, issue, options, pollMatch) {
     });
 
     const editedPost = `
-${issue.description.substring(0, pollMatch.index).replace('[//]: # "', '')}
+${issue.description.substring(0, pollMatch.index).replace("[//]: # \"", "")}
 [//]: # "${issue.description.substring(pollMatch.index, pollMatch.index + pollMatch[0].length)}"
 ${options.map(option => `
-* ${option}  (${optionCount[option] === undefined ? 0 : optionCount[option]})`).join('').trim()}
+1. ${option}  (${optionCount[option] === undefined ? 0 : optionCount[option]})`).join('').trim()}
 `.trim();
 
     await client.projects.issues.edit(issue.project_id, issue.iid, {description: editedPost});
