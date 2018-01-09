@@ -79,10 +79,10 @@ function getVote(note, options) {
 
     if ((optionMatch = voteRegex.exec(note)) !== null) {
         const vote = optionMatch[1] !== undefined ? optionMatch[1] : optionMatch[2] !== undefined ? optionMatch[2] : optionMatch[3];
-        if (isNaN(numberVote = parseInt(vote)) || options[numberVote + 1] === undefined) {
+        if (isNaN(numberVote = parseInt(vote)) || options[numberVote - 1] === undefined) {
             return vote;
         } else {
-            return options[numberVote + 1];
+            return options[numberVote - 1];
         }
     }
     return undefined;
